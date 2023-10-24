@@ -5,6 +5,8 @@ import (
 	"github.com/jomei/notionapi"
 )
 
+type Query notionapi.DatabaseQueryResponse
+
 type Notion struct {
 	apiKey string
 	client *notionapi.Client
@@ -16,6 +18,19 @@ func NewNotion(apiKey string) *Notion {
 }
 
 func (n Notion) GetActualTasks(databaseId string) (Tasks, error) {
+	ctx, id, queryRequest := prepareQueryParams(databaseId)
+	query, err := n.client.Database.Query(ctx, id, queryRequest)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := convertQueryDataToTasks(query)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func prepareQueryParams(databaseId string) (context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) {
 	id := notionapi.DatabaseID(databaseId)
 	ctx := context.Background()
 	var sortObjects []notionapi.SortObject
@@ -37,10 +52,5 @@ func (n Notion) GetActualTasks(databaseId string) (Tasks, error) {
 		StartCursor: "",
 		PageSize:    0,
 	}
-	query, err := n.client.Database.Query(ctx, id, &queryRequest)
-	if err != nil {
-		return nil, err
-	}
-	tasks := ConvertQueryDataToTasks(query)
-	return tasks, nil
+	return ctx, id, &queryRequest
 }

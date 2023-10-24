@@ -1,6 +1,7 @@
 package notion
 
 import (
+	"errors"
 	"github.com/jomei/notionapi"
 	"strconv"
 	"time"
@@ -15,14 +16,38 @@ type Task struct {
 	Date     time.Time
 }
 
-func ConvertQueryDataToTasks(query *notionapi.DatabaseQueryResponse) Tasks {
+func convertQueryDataToTasks(query *notionapi.DatabaseQueryResponse) (Tasks, error) {
 	var tasks Tasks
+	var (
+		err              error
+		ok               bool
+		titleProperty    *notionapi.TitleProperty
+		statusProperty   *notionapi.StatusProperty
+		estimateProperty *notionapi.SelectProperty
+		dateProperty     *notionapi.DateProperty
+		estimate         float64
+	)
 	for _, note := range query.Results {
-		titleProperty, _ := note.Properties["Task name"].(*notionapi.TitleProperty)
-		statusProperty, _ := note.Properties["Status"].(*notionapi.StatusProperty)
-		estimateProperty, _ := note.Properties["Estimates"].(*notionapi.SelectProperty)
-		estimate, _ := strconv.ParseFloat(estimateProperty.Select.Name, 32)
-		dateProperty, _ := note.Properties["Date"].(*notionapi.DateProperty)
+		titleProperty, ok = note.Properties["Task name"].(*notionapi.TitleProperty)
+		if !ok {
+			return nil, errors.New("title must have name: Task name")
+		}
+		statusProperty, ok = note.Properties["Status"].(*notionapi.StatusProperty)
+		if !ok {
+			return nil, errors.New("status must have name: Status")
+		}
+		estimateProperty, ok = note.Properties["Estimates"].(*notionapi.SelectProperty)
+		if !ok {
+			return nil, errors.New("estimates must have name: Estimates")
+		}
+		estimate, err = strconv.ParseFloat(estimateProperty.Select.Name, 32)
+		if err != nil {
+			return nil, err
+		}
+		dateProperty, ok = note.Properties["Date"].(*notionapi.DateProperty)
+		if !ok {
+			return nil, errors.New("date must have name: Date")
+		}
 		date := dateProperty.Date.Start
 		task := Task{
 			Name:     titleProperty.Title[0].PlainText,
@@ -32,5 +57,5 @@ func ConvertQueryDataToTasks(query *notionapi.DatabaseQueryResponse) Tasks {
 		}
 		tasks = append(tasks, task)
 	}
-	return tasks
+	return tasks, nil
 }
