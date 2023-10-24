@@ -17,7 +17,7 @@ type Task struct {
 }
 
 func convertQueryDataToTasks(query *notionapi.DatabaseQueryResponse) (Tasks, error) {
-	var tasks Tasks
+	tasks := Tasks{}
 	var (
 		err              error
 		ok               bool
