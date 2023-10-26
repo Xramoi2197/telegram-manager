@@ -7,14 +7,18 @@ import (
 
 type Query notionapi.DatabaseQueryResponse
 
+type TasksManager interface {
+	GetActualTasks(string) (Tasks, error)
+}
+
 type Notion struct {
-	apiKey string
 	client *notionapi.Client
 }
 
 func NewNotion(apiKey string) *Notion {
 	client := notionapi.NewClient(notionapi.Token(apiKey))
-	return &Notion{apiKey: apiKey, client: client}
+
+	return &Notion{client: client}
 }
 
 func (n Notion) GetActualTasks(databaseId string) (Tasks, error) {
